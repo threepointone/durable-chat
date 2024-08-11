@@ -1,0 +1,19 @@
+name = "durable-chat"
+main = "src/server/index.ts"
+compatibility_date = "2024-08-06"
+
+legacy_assets = "./public"
+
+[build]
+command = "esbuild src/client/index.tsx --bundle --splitting --format=esm --platform=browser --outdir=public/dist"
+
+[[durable_objects.bindings]]
+name = "Chat"
+class_name = "Chat"
+
+[[migrations]]
+tag = "v1" # Should be unique for each entry
+new_classes = ["Chat"]
+
+[ai]
+binding = 'Ai'
