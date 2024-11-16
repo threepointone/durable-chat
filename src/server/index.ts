@@ -15,11 +15,9 @@ type Env = {
 };
 
 export class Chat extends Server<Env> {
-  messages = [] as ChatMessage[];
+  static options = { hibernate: true };
 
-  sendMessage(connection: Connection, message: Message) {
-    connection.send(JSON.stringify(message));
-  }
+  messages = [] as ChatMessage[];
 
   broadcastMessage(message: Message, exclude?: string[]) {
     this.broadcast(JSON.stringify(message), exclude);
@@ -28,13 +26,50 @@ export class Chat extends Server<Env> {
   async onStart() {
     // this is where you can initialize things that need to be done before the server starts
     // for example, load previous messages from a database or a service
+
+    // create the messages table if it doesn't exist
+    this.ctx.storage.sql.exec(
+      `CREATE TABLE IF NOT EXISTS messages (id TEXT PRIMARY KEY, user TEXT, role TEXT, content TEXT)`
+    );
+
+    // load the messages from the database
+    this.messages = this.ctx.storage.sql
+      .exec(`SELECT * FROM messages`)
+      .toArray() as ChatMessage[];
   }
 
   async onConnect(connection: Connection, ctx: ConnectionContext) {
-    this.sendMessage(connection, {
-      type: "all",
-      messages: this.messages,
-    });
+    connection.send(
+      JSON.stringify({
+        type: "all",
+        messages: this.messages,
+      } satisfies Message)
+    );
+  }
+
+  saveMessage(message: ChatMessage) {
+    // check if the message already exists
+    const existingMessage = this.messages.find((m) => m.id === message.id);
+    if (existingMessage) {
+      this.messages = this.messages.map((m) => {
+        if (m.id === message.id) {
+          return message;
+        }
+        return m;
+      });
+    } else {
+      this.messages.push(message);
+    }
+
+    this.ctx.storage.sql.exec(
+      `INSERT INTO messages (id, user, role, content) VALUES ('${
+        message.id
+      }', '${message.user}', '${message.role}', ${JSON.stringify(
+        message.content
+      )}) ON CONFLICT (id) DO UPDATE SET content = ${JSON.stringify(
+        message.content
+      )}`
+    );
   }
 
   async onMessage(connection: Connection, message: WSMessage) {
@@ -46,7 +81,7 @@ export class Chat extends Server<Env> {
 
     if (parsed.type === "add") {
       // add the message to the local store
-      this.messages.push(parsed);
+      this.saveMessage(parsed);
       // let's ask AI to respond as well for fun
       const aiMessage = {
         id: nanoid(8),
@@ -71,7 +106,7 @@ export class Chat extends Server<Env> {
         }
       )) as ReadableStream;
 
-      this.messages.push(aiMessage);
+      this.saveMessage(aiMessage);
 
       const eventStream = aiMessageStream
         .pipeThrough(new TextDecoderStream())
@@ -95,14 +130,9 @@ export class Chat extends Server<Env> {
         } else {
           // the AI is done responding
           // we update our local messages store with the final response
-          this.messages = this.messages.map((m) => {
-            if (m.id === aiMessage.id) {
-              return {
-                ...m,
-                content: buffer,
-              };
-            }
-            return m;
+          this.saveMessage({
+            ...aiMessage,
+            content: buffer,
           });
 
           // let's update the message with the final response
@@ -115,8 +145,7 @@ export class Chat extends Server<Env> {
       }
     } else if (parsed.type === "update") {
       // update the message in the local store
-      const index = this.messages.findIndex((m) => m.id === parsed.id);
-      this.messages[index] = parsed;
+      this.saveMessage(parsed);
     }
   }
 }
