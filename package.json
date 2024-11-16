@@ -11,17 +11,17 @@
   "license": "ISC",
   "description": "Chat, with Durable Objects",
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20240806.0",
-    "@types/react": "^18.3.3",
-    "@types/react-dom": "^18.3.0",
-    "esbuild": "^0.23.0",
-    "typescript": "^5.5.4",
-    "wrangler": "^3.70.0"
+    "@cloudflare/workers-types": "^4.20241112.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.6.3",
+    "wrangler": "^3.87.0"
   },
   "dependencies": {
-    "eventsource-parser": "^2.0.1",
-    "nanoid": "^5.0.7",
-    "partyserver": "^0.0.51",
+    "eventsource-parser": "^3.0.0",
+    "nanoid": "^5.0.8",
+    "partyserver": "^0.0.57",
     "partysocket": "^1.0.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"

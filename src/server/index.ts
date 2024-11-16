@@ -25,6 +25,11 @@ export class Chat extends Server<Env> {
     this.broadcast(JSON.stringify(message), exclude);
   }
 
+  async onStart() {
+    // this is where you can initialize things that need to be done before the server starts
+    // for example, load previous messages from a database or a service
+  }
+
   async onConnect(connection: Connection, ctx: ConnectionContext) {
     this.sendMessage(connection, {
       type: "all",
